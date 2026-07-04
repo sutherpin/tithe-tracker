@@ -1,0 +1,12 @@
+name = "tithetracker-api"
+main = "src/index.js"
+compatibility_date = "2026-07-01"
+
+# Replace with your actual GitHub Pages URL, e.g. "https://sutherpin.github.io"
+[vars]
+ALLOWED_ORIGIN = "https://sutherpin.github.io/tithe-tracker/"
+
+[[d1_databases]]
+binding = "DB"                # accessible in code as env.DB
+database_name = "tithetracker-db"
+database_id = "2f1d1301-98f6-47fc-92df-c826cbe007c7"   # filled in after `wrangler d1 create`
