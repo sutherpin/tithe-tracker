@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cash Account Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="2" fill="rgba(255,255,255,0.1)"/><circle cx="80" cy="40" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="40" cy="80" r="1.5" fill="rgba(255,255,255,0.1)"/></svg>');
+        }
+
+        .balance-display {
+            position: relative;
+            z-index: 1;
+        }
+
+        .balance-label {
+            font-size: 18px;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .balance-amount {
+            font-size: 48px;
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .transaction-form {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .form-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #fafbfc;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #4CAF50;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+            margin-bottom: 10px;
+        }
+
+        .undo-btn {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.3);
+        }
+
+        .undo-btn:disabled {
+            background: #ccc;
+            color: #999;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .undo-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 152, 0, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .transaction-log {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        .log-title {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            font-size: 20px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .log-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .export-btn, .clear-btn, .import-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .export-btn:hover, .clear-btn:hover, .import-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .clear-btn:hover {
+            background: rgba(244, 67, 54, 0.3);
+            border-color: rgba(244, 67, 54, 0.5);
+        }
+
+        .transaction-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .transaction-item {
+            display: grid;
+            grid-template-columns: 120px 1fr 120px;
+            gap: 15px;
+            padding: 15px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.2s ease;
+            align-items: center;
+        }
+
+        .transaction-item:hover {
+            background: #f8f9fa;
+        }
+
+        .transaction-item:last-child {
+            border-bottom: none;
+        }
+
+        .transaction-date {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .transaction-reason {
+            font-size: 16px;
+            color: #333;
+        }
+
+        .transaction-amount {
+            font-size: 16px;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .amount-positive {
+            color: #4CAF50;
+        }
+
+        .amount-negative {
+            color: #f44336;
+        }
+
+        .empty-state {
+            padding: 40px;
+            text-align: center;
+            color: #999;
+            font-style: italic;
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .quick-btn {
+            padding: 12px;
+            border-radius: 10px;
+            border: 2px solid #e1e5e9;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .quick-btn.deposit {
+            border-color: #4CAF50;
+            color: #4CAF50;
+        }
+
+        .quick-btn.withdrawal {
+            border-color: #f44336;
+            color: #f44336;
+        }
+
+        .quick-btn:hover {
+            background: #f8f9fa;
+            transform: translateY(-1px);
+        }
+
+        .quick-btn.active.deposit {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .quick-btn.active.withdrawal {
+            background: #f44336;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                margin: 0;
+                border-radius: 15px;
+            }
+
+            .header {
+                padding: 20px 15px;
+            }
+
+            .balance-amount {
+                font-size: 36px;
+            }
+
+            .content {
+                padding: 20px 15px;
+            }
+
+            .transaction-form {
+                padding: 20px 15px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-actions {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .log-title {
+                padding: 15px;
+                font-size: 18px;
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch;
+            }
+
+            .log-actions {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+                width: 100%;
+            }
+
+            .export-btn, .clear-btn, .import-btn {
+                padding: 10px 8px;
+                font-size: 12px;
+                white-space: nowrap;
+                text-align: center;
+            }
+
+            .transaction-item {
+                grid-template-columns: 1fr;
+                gap: 8px;
+                text-align: left;
+                padding: 15px;
+            }
+
+            .transaction-date {
+                font-size: 13px;
+                font-weight: 600;
+                color: #4CAF50;
+            }
+
+            .transaction-reason {
+                font-size: 15px;
+                margin: 5px 0;
+            }
+
+            .transaction-amount {
+                font-size: 18px;
+                font-weight: 700;
+                text-align: left;
+            }
+
+            .form-title {
+                font-size: 20px;
+            }
+
+            .btn {
+                padding: 12px 20px;
+                font-size: 16px;
+                margin-bottom: 8px;
+            }
+
+            .undo-btn {
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="balance-display">
+                <div class="balance-label">Current Balance</div>
+                <div class="balance-amount" id="currentBalance">$0.00</div>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="transaction-form">
+                <h2 class="form-title">Add Transaction</h2>
+                
+                <div class="quick-actions">
+                    <div class="quick-btn deposit active" onclick="setTransactionType('deposit')">
+                        + Deposit
+                    </div>
+                    <div class="quick-btn withdrawal" onclick="setTransactionType('withdrawal')">
+                        - Withdrawal
+                    </div>
+                </div>
+
+                <form id="transactionForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="date">Date</label>
+                            <input type="date" id="date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="amount">Amount</label>
+                            <input type="number" id="amount" step="0.01" min="0" placeholder="0.00" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="reason">Reason/Description</label>
+                        <input type="text" id="reason" placeholder="Enter transaction description" required>
+                    </div>
+                    <button type="submit" class="btn" id="submitBtn">Add Deposit</button>
+                    <button type="button" class="undo-btn" id="undoBtn" onclick="undoLastTransaction()" disabled>
+                        ↶ Undo Last
+                    </button>
+                </form>
+            </div>
+
+            <div class="transaction-log">
+                <div class="log-title">
+                    Transaction History
+                    <div class="log-actions">
+                        <input type="file" id="csvImport" accept=".csv" style="display: none;" onchange="importFromCSV()">
+                        <button class="import-btn" onclick="document.getElementById('csvImport').click()" title="Import from CSV">
+                            📁 Import CSV
+                        </button>
+                        <button class="export-btn" onclick="exportToCSV()" title="Export to CSV">
+                            📊 Export CSV
+                        </button>
+                        <button class="clear-btn" onclick="clearAllData()" title="Clear all data">
+                            🗑️ Clear Data
+                        </button>
+                    </div>
+                </div>
+                <div class="transaction-list" id="transactionList">
+                    <div class="empty-state">No transactions yet. Add your first transaction above!</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== Cloudflare Worker API config =====
+        // Replace with your deployed Worker URL, e.g. "https://tithetracker-api.yourname.workers.dev"
+        const API_BASE = 'https://tithetracker-api.YOUR_SUBDOMAIN.workers.dev';
+
+        let transactions = [];
+        let currentTransactionType = 'deposit';
+
+        function getSecret() {
+            let secret = localStorage.getItem('tithetrackerSecret');
+            if (!secret) {
+                secret = prompt('Enter access password:');
+                if (secret) localStorage.setItem('tithetrackerSecret', secret);
+            }
+            return secret;
+        }
+
+        async function apiRequest(path, options = {}) {
+            const secret = getSecret();
+            const response = await fetch(API_BASE + path, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + secret,
+                    ...(options.headers || {}),
+                },
+            });
+
+            if (response.status === 401) {
+                alert('Incorrect password. Please reload and try again.');
+                localStorage.removeItem('tithetrackerSecret');
+                throw new Error('Unauthorized');
+            }
+            if (!response.ok) {
+                const body = await response.json().catch(() => ({}));
+                throw new Error(body.error || `Request failed (${response.status})`);
+            }
+            return response.status === 204 ? null : response.json();
+        }
+
+        async function loadData() {
+            try {
+                transactions = await apiRequest('/api/transactions');
+            } catch (err) {
+                console.error('Failed to load transactions:', err);
+                alert('Could not load transactions from the server: ' + err.message);
+                transactions = [];
+            }
+        }
+
+        function setTransactionType(type) {
+            currentTransactionType = type;
+            
+            document.querySelectorAll('.quick-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            if (type === 'deposit') {
+                document.querySelector('.quick-btn.deposit').classList.add('active');
+                document.getElementById('submitBtn').textContent = 'Add Deposit';
+                document.getElementById('submitBtn').style.background = 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)';
+            } else {
+                document.querySelector('.quick-btn.withdrawal').classList.add('active');
+                document.getElementById('submitBtn').textContent = 'Add Withdrawal';
+                document.getElementById('submitBtn').style.background = 'linear-gradient(135deg, #f44336 0%, #d32f2f 100%)';
+            }
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount);
+        }
+
+        function formatDate(dateString) {
+            const [year, month, day] = dateString.split('-');
+            const date = new Date(year, month - 1, day);
+            return date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+        }
+
+        function calculateBalance() {
+            return transactions.reduce((balance, transaction) => {
+                return balance + (transaction.type === 'deposit' ? transaction.amount : -transaction.amount);
+            }, 0);
+        }
+
+        function updateBalance() {
+            const balance = calculateBalance();
+            const balanceElement = document.getElementById('currentBalance');
+            balanceElement.textContent = formatCurrency(balance);
+            
+            if (balance >= 0) {
+                balanceElement.style.color = 'white';
+            } else {
+                balanceElement.style.color = '#ffcdd2';
+            }
+        }
+
+        function renderTransactions() {
+            const transactionList = document.getElementById('transactionList');
+            
+            if (transactions.length === 0) {
+                transactionList.innerHTML = '<div class="empty-state">No transactions yet. Add your first transaction above!</div>';
+                return;
+            }
+
+            const sortedTransactions = [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            const transactionHTML = sortedTransactions.map(transaction => {
+                const amountClass = transaction.type === 'deposit' ? 'amount-positive' : 'amount-negative';
+                const amountSign = transaction.type === 'deposit' ? '+' : '-';
+                
+                return `
+                    <div class="transaction-item">
+                        <div class="transaction-date">${formatDate(transaction.date)}</div>
+                        <div class="transaction-reason">${transaction.reason}</div>
+                        <div class="transaction-amount ${amountClass}">
+                            ${amountSign}${formatCurrency(transaction.amount)}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            transactionList.innerHTML = transactionHTML;
+        }
+
+        function updateUndoButton() {
+            const undoBtn = document.getElementById('undoBtn');
+            if (undoBtn) {
+                undoBtn.disabled = transactions.length === 0;
+            }
+        }
+
+        async function undoLastTransaction() {
+            if (transactions.length === 0) {
+                return;
+            }
+
+            // "Last" = most recently inserted, i.e. highest id (not necessarily latest date)
+            const lastTransaction = transactions.reduce((a, b) => (a.id > b.id ? a : b));
+            const confirmMessage = `Undo last transaction?\n\n${formatDate(lastTransaction.date)}\n${lastTransaction.reason}\n${lastTransaction.type === 'deposit' ? '+' : '-'}${formatCurrency(lastTransaction.amount)}`;
+
+            if (confirm(confirmMessage)) {
+                try {
+                    await apiRequest(`/api/transactions/${lastTransaction.id}`, { method: 'DELETE' });
+                    await loadData();
+                    updateBalance();
+                    renderTransactions();
+                    updateUndoButton();
+
+                    const undoBtn = document.getElementById('undoBtn');
+                    const originalText = undoBtn.textContent;
+                    undoBtn.textContent = '✅ Undone!';
+                    setTimeout(() => {
+                        undoBtn.textContent = originalText;
+                        updateUndoButton();
+                    }, 2000);
+                } catch (err) {
+                    alert('Failed to undo: ' + err.message);
+                }
+            }
+        }
+
+        async function addTransaction(date, reason, amount, type) {
+            try {
+                await apiRequest('/api/transactions', {
+                    method: 'POST',
+                    body: JSON.stringify({ date, reason, amount: parseFloat(amount), type }),
+                });
+                await loadData();
+                updateBalance();
+                renderTransactions();
+                updateUndoButton();
+            } catch (err) {
+                alert('Failed to add transaction: ' + err.message);
+            }
+        }
+
+        async function clearAllData() {
+            if (transactions.length === 0) {
+                alert('No data to clear');
+                return;
+            }
+
+            if (confirm('Are you sure you want to delete all transactions? This cannot be undone!\n\nTip: Consider exporting to CSV first as a backup.')) {
+                try {
+                    await apiRequest('/api/transactions', { method: 'DELETE' });
+                    await loadData();
+                    updateBalance();
+                    renderTransactions();
+                    updateUndoButton();
+
+                    const clearBtn = document.querySelector('.clear-btn');
+                    const originalText = clearBtn.textContent;
+                    clearBtn.textContent = '✅ Cleared!';
+                    setTimeout(() => {
+                        clearBtn.textContent = originalText;
+                    }, 2000);
+                } catch (err) {
+                    alert('Failed to clear data: ' + err.message);
+                }
+            }
+        }
+
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current);
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            
+            result.push(current);
+            return result;
+        }
+
+        function importFromCSV() {
+            const file = document.getElementById('csvImport').files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const csvData = e.target.result;
+                    const lines = csvData.split('\n');
+
+                    const dataLines = lines.slice(1).filter(line => line.trim());
+
+                    if (dataLines.length === 0) {
+                        alert('No transaction data found in CSV file');
+                        return;
+                    }
+
+                    const replace = confirm(
+                        `Found ${dataLines.length} transactions in CSV.\n\n` +
+                        'Click "OK" to REPLACE all current data\n' +
+                        'Click "Cancel" to ADD to current data'
+                    );
+
+                    if (replace) {
+                        await apiRequest('/api/transactions', { method: 'DELETE' });
+                    }
+
+                    let importCount = 0;
+                    for (const line of dataLines) {
+                        const columns = parseCSVLine(line);
+                        if (columns.length >= 4) {
+                            const date = columns[0];
+                            const description = columns[1].replace(/^"|"$/g, '');
+                            const type = columns[2].toLowerCase() === 'deposit' ? 'deposit' : 'withdrawal';
+                            const amount = parseFloat(columns[3]);
+
+                            if (date && description && !isNaN(amount)) {
+                                await apiRequest('/api/transactions', {
+                                    method: 'POST',
+                                    body: JSON.stringify({ date, reason: description, amount, type }),
+                                });
+                                importCount++;
+                            }
+                        }
+                    }
+
+                    if (importCount > 0) {
+                        await loadData();
+                        updateBalance();
+                        renderTransactions();
+                        updateUndoButton();
+
+                        const importBtn = document.querySelector('.import-btn');
+                        const originalText = importBtn.textContent;
+                        importBtn.textContent = `✅ Imported ${importCount}!`;
+                        setTimeout(() => {
+                            importBtn.textContent = originalText;
+                        }, 3000);
+                    } else {
+                        alert('No valid transactions could be imported from the CSV file');
+                    }
+
+                } catch (error) {
+                    alert('Error importing CSV file: ' + error.message);
+                }
+
+                document.getElementById('csvImport').value = '';
+            };
+
+            reader.readAsText(file);
+        }
+
+        function exportToCSV() {
+            if (transactions.length === 0) {
+                alert('No transactions to export');
+                return;
+            }
+
+            const sortedTransactions = [...transactions].sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            let csvContent = 'Date,Description,Type,Amount,Running Balance\n';
+            let runningBalance = 0;
+            
+            sortedTransactions.forEach(transaction => {
+                runningBalance += transaction.type === 'deposit' ? transaction.amount : -transaction.amount;
+                
+                const date = transaction.date;
+                const description = `"${transaction.reason.replace(/"/g, '""')}"`;
+                const type = transaction.type === 'deposit' ? 'Deposit' : 'Withdrawal';
+                const amount = transaction.amount.toFixed(2);
+                const balance = runningBalance.toFixed(2);
+                
+                csvContent += `${date},${description},${type},${amount},${balance}\n`;
+            });
+            
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            const today = new Date().toISOString().split('T')[0];
+            const filename = `cash-account-${today}.csv`;
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            const exportBtn = document.querySelector('.export-btn');
+            const originalText = exportBtn.textContent;
+            exportBtn.textContent = '✅ Exported!';
+            setTimeout(() => {
+                exportBtn.textContent = originalText;
+            }, 2000);
+        }
+
+        // Initialize when page loads
+        window.addEventListener('load', async function() {
+            // Set today's date as default
+            document.getElementById('date').valueAsDate = new Date();
+
+            // Form submission
+            document.getElementById('transactionForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const date = document.getElementById('date').value;
+                const reason = document.getElementById('reason').value;
+                const amount = document.getElementById('amount').value;
+
+                if (date && reason && amount) {
+                    await addTransaction(date, reason, amount, currentTransactionType);
+
+                    document.getElementById('reason').value = '';
+                    document.getElementById('amount').value = '';
+
+                    const submitBtn = document.getElementById('submitBtn');
+                    const originalText = submitBtn.textContent;
+                    submitBtn.textContent = 'Added!';
+                    setTimeout(() => {
+                        submitBtn.textContent = originalText;
+                    }, 1000);
+                }
+            });
+
+            // Load data and initialize
+            const transactionList = document.getElementById('transactionList');
+            transactionList.innerHTML = '<div class="empty-state">Loading transactions…</div>';
+            await loadData();
+            updateBalance();
+            renderTransactions();
+            updateUndoButton();
+        });
+    </script>
+</body>
+</html>
